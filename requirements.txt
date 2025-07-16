@@ -1,0 +1,19 @@
+# Core Streamlit App
+streamlit==1.46.1
+
+# Data handling
+pandas==2.3.1
+openpyxl==3.1.5
+xlsxwriter==3.2.5
+
+# OpenAI API client
+openai==1.95.1
+
+# PDF parsing
+PyMuPDF==1.26.3  # also known as fitz
+
+# Optional (for regex + CSV parsing robustness)
+python-dotenv==1.0.1
+
+# Required if deployed to Streamlit Cloud (for secrets)
+# [already managed by Streamlit infra]
