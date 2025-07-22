@@ -1,6 +1,6 @@
 # agents/discrepancy_resolution.py
 from .base import BaseAgent
-import openai
+from openai import AzureOpenAI
 import pandas as pd
 from io import StringIO
 import re
@@ -66,11 +66,14 @@ TR456,Split transaction detected,Sum of transactions TR457 and TR458 match - ver
 """
 
         try:
-            # Set API key globally
-            openai.api_key = self.api_key
-            
-            response = openai.chat.completions.create(
-                model="gpt-4",
+            # Use AzureOpenAI client
+            client = AzureOpenAI(
+                api_key=self.llm_config.get("api_key"),
+                api_version=self.llm_config.get("api_version"),
+                azure_endpoint=self.llm_config.get("azure_endpoint")
+            )
+            response = client.chat.completions.create(
+                model=self.llm_config.get("model_name"),
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0
             )

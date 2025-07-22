@@ -1,8 +1,8 @@
 # agents/base.py
 class BaseAgent:
-    def __init__(self, name, api_key=None):
+    def __init__(self, name, llm_config=None):
         self.name = name
-        self.api_key = api_key
+        self.llm_config = llm_config or {}
         self.logs = []
 
     def log(self, message):

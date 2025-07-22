@@ -26,7 +26,11 @@ class ReportGeneratorAgent(BaseAgent):
                     self.log("Added Journal data.")
 
                 # Write resolution suggestions if available
-                if "suggestions_df" in input_data and not input_data["suggestions_df"].empty:
+                if (
+                    "suggestions_df" in input_data
+                    and input_data["suggestions_df"] is not None
+                    and not input_data["suggestions_df"].empty
+                ):
                     input_data["suggestions_df"].to_excel(writer, sheet_name="Resolution Suggestions", index=False)
                     self.log("Added resolution suggestions.")
 

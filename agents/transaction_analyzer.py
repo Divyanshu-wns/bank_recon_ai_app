@@ -1,7 +1,7 @@
 # agents/transaction_analyzer.py
 from .base import BaseAgent
 import pandas as pd
-import openai
+from openai import AzureOpenAI
 from io import StringIO
 import re
 
@@ -50,11 +50,14 @@ Remember: Output ONLY the CSV data with the exact columns specified, no addition
 """
 
         try:
-            # Set API key globally
-            openai.api_key = self.api_key
-            
-            response = openai.chat.completions.create(
-                model="gpt-4",
+            # Use AzureOpenAI client
+            client = AzureOpenAI(
+                api_key=self.llm_config.get("api_key"),
+                api_version=self.llm_config.get("api_version"),
+                azure_endpoint=self.llm_config.get("azure_endpoint")
+            )
+            response = client.chat.completions.create(
+                model=self.llm_config.get("model_name"),
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0
             )

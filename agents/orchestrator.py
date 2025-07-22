@@ -5,14 +5,14 @@ from .discrepancy_resolution import DiscrepancyResolutionAgent
 from .report_generator import ReportGeneratorAgent
 
 class AgentOrchestrator:
-    def __init__(self, api_key):
-        self.api_key = api_key
+    def __init__(self, llm_config):
+        self.llm_config = llm_config
         self.logs = []
 
     def run_all(self, uploaded_file, sop_text):
         try:
             # Step 1: Collect raw data
-            raw_agent = RawDataCollectorAgent(name="RawDataCollector", api_key=self.api_key)
+            raw_agent = RawDataCollectorAgent(name="RawDataCollector", llm_config=self.llm_config)
             step1 = raw_agent.run(uploaded_file)
             self.logs.extend(raw_agent.logs)
 
@@ -21,17 +21,17 @@ class AgentOrchestrator:
             journal_df = step1["journal_df"]
 
             # Step 2: Analyze transactions
-            tx_agent = TransactionAnalyzerAgent(name="TransactionAnalyzer", api_key=self.api_key)
+            tx_agent = TransactionAnalyzerAgent(name="TransactionAnalyzer", llm_config=self.llm_config)
             step2 = tx_agent.run(step1, sop_context=sop_text)
             self.logs.extend(tx_agent.logs)
 
             # Step 3: Resolve discrepancies
-            disc_agent = DiscrepancyResolutionAgent(name="DiscrepancyResolver", api_key=self.api_key)
+            disc_agent = DiscrepancyResolutionAgent(name="DiscrepancyResolver", llm_config=self.llm_config)
             step3 = disc_agent.run(step2, sop_context=sop_text)
             self.logs.extend(disc_agent.logs)
 
             # Step 4: Generate report (include original data)
-            report_agent = ReportGeneratorAgent(name="ReportGenerator", api_key=self.api_key)
+            report_agent = ReportGeneratorAgent(name="ReportGenerator", llm_config=self.llm_config)
             final_data = {
                 "recon_df": step3["recon_df"],
                 "suggestions_df": step3.get("suggestions_df", None),

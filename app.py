@@ -77,22 +77,35 @@ else:
     if uploaded_file and st.button("🚀 Run Reconciliation"):
         logs = []
 
-        # 1. Get OpenAI Key
-        def get_openai_api_key():
-            # Try environment variable first
-            api_key = os.getenv("OPENAI_API_KEY")
-            if api_key:
-                return api_key
-                
+        # 1. Get Azure OpenAI credentials
+        def get_azure_openai_config():
+            # Try environment variables first
+            azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+            api_key = os.getenv("AZURE_OPENAI_API_KEY")
+            api_version = os.getenv("OPENAI_API_VERSION")
+            model_name = os.getenv("AZURE_OPENAI_MODEL_NAME")
+            
             # Fall back to Streamlit secrets
-            if "openai" in st.secrets and "api_key" in st.secrets["openai"]:
-                return st.secrets["openai"]["api_key"]
-            
-            # If no key found
-            st.error("❌ OpenAI API key not found. Please set it in environment variables or Streamlit secrets.")
-            st.stop()
-            
-        api_key = get_openai_api_key()
+            if not azure_endpoint and "azure_openai" in st.secrets and "azure_endpoint" in st.secrets["azure_openai"]:
+                azure_endpoint = st.secrets["azure_openai"]["azure_endpoint"]
+            if not api_key and "azure_openai" in st.secrets and "api_key" in st.secrets["azure_openai"]:
+                api_key = st.secrets["azure_openai"]["api_key"]
+            if not api_version and "azure_openai" in st.secrets and "api_version" in st.secrets["azure_openai"]:
+                api_version = st.secrets["azure_openai"]["api_version"]
+            if not model_name and "azure_openai" in st.secrets and "model_name" in st.secrets["azure_openai"]:
+                model_name = st.secrets["azure_openai"]["model_name"]
+
+            if not (azure_endpoint and api_key and api_version and model_name):
+                st.error("❌ Azure OpenAI credentials not found. Please set them in environment variables or Streamlit secrets.")
+                st.stop()
+            return {
+                "azure_endpoint": azure_endpoint,
+                "api_key": api_key,
+                "api_version": api_version,
+                "model_name": model_name
+            }
+
+        azure_config = get_azure_openai_config()
 
         # 2. Extract SOP text
         sop_text = ""
@@ -111,7 +124,7 @@ else:
         st.info("⏳ Running all agents...")
         with st.spinner("🧠 Reconciliation in progress..."):
             try:
-                orchestrator = AgentOrchestrator(api_key)
+                orchestrator = AgentOrchestrator(azure_config)
                 output_file, logs = orchestrator.run_all(uploaded_file, sop_text)
                 st.success("✅ Reconciliation completed.")
             except Exception as e:
