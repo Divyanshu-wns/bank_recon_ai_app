@@ -21,32 +21,29 @@ class TransactionAnalyzerAgent(BaseAgent):
         journal_csv = journal_df.to_csv(index=False)
 
         prompt = f"""
-You are a finance assistant. Use the following SOP when analyzing:
-### SOP:
-{sop_context or '''No SOP provided. Use standard reconciliation rules:
-1. Match transactions based on Account Number, Transaction Code, and Date
-2. Compare amounts ensuring Debit matches sum of absolute EDW amounts
-3. Flag partial matches when amounts don't fully reconcile'''}
+You are a highly precise finance assistant. Your job is to match Journal and EDW transactions for reconciliation.
 
-Now, match Journal and EDW transactions using:
-- Account Number, Tran Code, and Date match
-- Debit = Sum of absolute EDW amounts
-
-Output ONLY a CSV table with these exact columns (no other text):
+**Instructions:**
+- Use the SOP below for your logic.
+- Output ONLY a CSV table with EXACTLY these columns, in this order, and NO extra columns or text:
 No,Item Type,Reconciliation,SIDE,Value Date,Ref 1,Amount,Amt CCY,Bus Entity,Stmt Date,Rule,ENTRY DATE,Ref 2,Ref 3,Ref 4,Tran Code,Status
+- If a field contains a comma, wrap it in double quotes.
+- Do NOT add any explanations, markdown, code blocks, summary lines, or extra headers.
+- Every row must have exactly 17 columns, matching the header above.
 
-For the Status column, use ONLY these values:
-- "MATCHED" for reconciled transactions
-- "UNMATCHED" for transactions that don't match
-- "PARTIAL" for partially matched transactions
+**Status column values:**
+- Use ONLY: MATCHED, UNMATCHED, or PARTIAL.
 
-### EDW:
+**SOP:**
+{sop_context or 'No SOP provided. Use standard reconciliation rules: 1. Match transactions based on Account Number, Transaction Code, and Date. 2. Compare amounts ensuring Debit matches sum of absolute EDW amounts. 3. Flag partial matches when amounts do not fully reconcile.'}
+
+**EDW:**
 {edw_csv}
 
-### Journal:
+**Journal:**
 {journal_csv}
 
-Remember: Output ONLY the CSV data with the exact columns specified, no additional text or explanations.
+Remember: Output ONLY the CSV data, with the exact columns and order specified above. No extra text, explanations, or formatting.
 """
 
         try:
@@ -75,33 +72,25 @@ Remember: Output ONLY the CSV data with the exact columns specified, no addition
             if not gpt_output.startswith(expected_header):
                 gpt_output = expected_header + "\n" + gpt_output
 
-            try:
-                # Try parsing with pandas
-                recon_df = pd.read_csv(StringIO(gpt_output))
-                # Ensure Status column is string and standardized
-                recon_df['Status'] = recon_df['Status'].fillna('UNMATCHED').astype(str).str.upper()
-            except Exception as e:
-                self.log(f"Error parsing CSV: {e}")
-                # If parsing fails, try to fix common issues
-                lines = gpt_output.split('\n')
-                cleaned_lines = []
-                num_columns = len(expected_header.split(','))
-                
-                for line in lines:
-                    if line.strip():  # Skip empty lines
-                        fields = line.split(',')
-                        if len(fields) > num_columns:
-                            # If we have too many columns, combine excess columns
-                            fields = fields[:num_columns-1] + [','.join(fields[num_columns-1:])]
-                        elif len(fields) < num_columns:
-                            # If we have too few columns, pad with empty strings
-                            fields.extend([''] * (num_columns - len(fields)))
-                        cleaned_lines.append(','.join(fields))
-                
-                cleaned_csv = '\n'.join(cleaned_lines)
-                recon_df = pd.read_csv(StringIO(cleaned_csv))
-                # Ensure Status column is string and standardized
-                recon_df['Status'] = recon_df['Status'].fillna('UNMATCHED').astype(str).str.upper()
+            lines = gpt_output.split('\n')
+            cleaned_lines = []
+            num_columns = len(expected_header.split(','))
+            
+            for line in lines:
+                if line.strip():  # Skip empty lines
+                    fields = line.split(',')
+                    if len(fields) > num_columns:
+                        # If we have too many columns, combine excess columns
+                        fields = fields[:num_columns-1] + [','.join(fields[num_columns-1:])]
+                    elif len(fields) < num_columns:
+                        # If we have too few columns, pad with empty strings
+                        fields.extend([''] * (num_columns - len(fields)))
+                    cleaned_lines.append(','.join(fields))
+            
+            cleaned_csv = '\n'.join(cleaned_lines)
+            recon_df = pd.read_csv(StringIO(cleaned_csv))
+            # Ensure Status column is string and standardized
+            recon_df['Status'] = recon_df['Status'].fillna('UNMATCHED').astype(str).str.upper()
 
             self.log("Successfully parsed GPT response to DataFrame.")
 

@@ -26,43 +26,22 @@ class DiscrepancyResolutionAgent(BaseAgent):
 
         csv_data = unmatched_df.to_csv(index=False)
         prompt = f"""
-You are a finance assistant specializing in bank reconciliation discrepancy resolution. Your task is to analyze unmatched transactions and provide actionable resolution steps.
+You are a bank reconciliation expert. Your job is to analyze unmatched transactions and suggest resolutions.
 
-Role and Context:
-- You have expertise in banking transactions and reconciliation processes
-- You understand common banking systems and their transaction patterns
-- You can identify patterns in transaction codes, dates, and amounts
+**Instructions:**
+- Output ONLY a CSV table with EXACTLY these columns, in this order, and NO extra columns or text:
+Ref 1,Issue,Suggested Resolution
+- If a field contains a comma, wrap it in double quotes.
+- Do NOT add any explanations, markdown, code blocks, summary lines, or extra headers.
+- Every row must have exactly 3 columns, matching the header above.
 
-Refer to the following Standard Operating Procedure (SOP) to guide your resolution process:
-### SOP:
-{sop_context or '''No SOP provided. Use the following general resolution guidelines:
-1. Check for date mismatches within a 3-day window
-2. Look for amount splits or combined entries (sum of multiple entries matching a single entry)
-3. Verify if similar transaction codes might represent the same type of transaction (e.g., TRF/TRANSFER)
-4. Investigate potential currency conversion differences or decimal place errors
-5. Look for system-specific patterns in reference numbers or transaction IDs
-6. Check for reversed entries or correction entries
-7. Identify possible timing differences between systems
-'''}
+**SOP:**
+{sop_context or 'No SOP provided. Use general resolution guidelines: 1. Check for date mismatches within a 3-day window. 2. Look for amount splits or combined entries. 3. Verify similar transaction codes. 4. Investigate currency conversion differences. 5. Check for reversed or correction entries.'}
 
-Below are the unmatched transactions. For each entry, perform the following:
-1. Identify the most likely reason for the mismatch by analyzing:
-   - Date proximity
-   - Amount relationships (exact/split/combined)
-   - Transaction code similarities
-   - Reference number patterns
-2. Suggest specific and actionable resolution steps with clear instructions
-3. Reference relevant SOP points that apply to the resolution
-
-### Unmatched Transactions:
+**Unmatched Transactions:**
 {csv_data}
 
-Return ONLY a CSV table with exactly these columns (no additional text or markdown):
-Ref 1,Issue,Suggested Resolution
-
-Example format:
-TR123,Date mismatch within 2 days,Check posting date in EDW system and verify against value date
-TR456,Split transaction detected,Sum of transactions TR457 and TR458 match - verify if intentionally split
+Remember: Output ONLY the CSV data, with the exact columns and order specified above. No extra text, explanations, or formatting.
 """
 
         try:
